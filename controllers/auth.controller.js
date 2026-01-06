@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const User = require("../models/user.model.js");
 const generateEmailVerificationToken = require("../utils/token.util.js");
 const sendVerificationEmail = require("../services/email.service.js");
+const { generateAccessToken } = require("../utils/generateToken.util.js");
 
 const register = async (req, res) => {
     try {
@@ -97,16 +98,14 @@ const login = async (req, res) => {
             });
         }
 
+        const accessToken = generateAccessToken(user);
+        console.log("This is the access token: ", accessToken);
+
         // Send response
         return res.status(200).json({
             success: true,
             message: "Login successful",
-            user: {
-                id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                role: user.role,
-            },
+            accessToken, // Access Token is sent to the client
         });
     } catch (error) {
         console.error("Login error:", error);
@@ -174,4 +173,29 @@ const verifyEmail = async (req, res) => {
     }
 };
 
-module.exports = { register, login, verifyEmail };
+const getMe = async (req, res) => {
+    try {
+        const { userId } = req.auth;
+
+        const user = await User.findById(userId).select("-password -__v");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: user,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+module.exports = { register, login, verifyEmail, getMe };
