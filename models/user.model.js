@@ -33,6 +33,16 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+
+        emailVerificationToken: {
+            type: String,
+            select: false,
+        },
+
+        emailVerificationExpires: {
+            type: Date,
+            select: false,
+        },
     },
     {
         timestamps: true, // creates createdAt & updatedAt automatically

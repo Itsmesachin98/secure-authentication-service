@@ -1,5 +1,9 @@
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+
 const User = require("../models/user.model.js");
+const generateEmailVerificationToken = require("../utils/token.util.js");
+const sendVerificationEmail = require("../services/email.service.js");
 
 const register = async (req, res) => {
     try {
@@ -33,16 +37,16 @@ const register = async (req, res) => {
             password: passwordHash,
         });
 
+        const verificationToken = generateEmailVerificationToken(user);
+        await user.save({ validateBeforeSave: false });
+
+        await sendVerificationEmail(user.email, verificationToken);
+
         // 5. Send response (never send password hash)
         return res.status(201).json({
             success: true,
-            message: "User registered successfully",
-            user: {
-                id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                createdAt: user.createdAt,
-            },
+            message:
+                "Registration successful. Please verify your email address to activate your account.",
         });
     } catch (error) {
         console.error("Register Error:", error);
@@ -54,4 +58,120 @@ const register = async (req, res) => {
     }
 };
 
-module.exports = { register };
+const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required",
+            });
+        }
+
+        // Find user (explicitly select password)
+        const user = await User.findOne({ email }).select("+password");
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+
+        // Compare password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password",
+            });
+        }
+
+        if (!user.isEmailVerified) {
+            return res.status(403).json({
+                success: false,
+                message: "Please verify your email before logging in",
+            });
+        }
+
+        // Send response
+        return res.status(200).json({
+            success: true,
+            message: "Login successful",
+            user: {
+                id: user._id,
+                fullName: user.fullName,
+                email: user.email,
+                role: user.role,
+            },
+        });
+    } catch (error) {
+        console.error("Login error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: "Verification token is missing",
+            });
+        }
+
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        const user = await User.findOne({
+            emailVerificationToken: hashedToken,
+            emailVerificationExpires: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Token is invalid or has expired",
+            });
+        }
+
+        // If already verified (extra safety)
+        if (user.isEmailVerified) {
+            return res.status(200).json({
+                success: true,
+                message: "Email is already verified",
+            });
+        }
+
+        user.isEmailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Email verified successfully. You can now log in.",
+        });
+    } catch (error) {
+        console.error("Email verification error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+module.exports = { register, login, verifyEmail };
