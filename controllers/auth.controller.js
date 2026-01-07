@@ -1,10 +1,18 @@
+require("dotenv").config();
+
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 
 const User = require("../models/user.model.js");
+const RefreshToken = require("../models/refreshToken.model.js");
+
 const generateEmailVerificationToken = require("../utils/token.util.js");
 const sendVerificationEmail = require("../services/email.service.js");
 const { generateAccessToken } = require("../utils/generateToken.util.js");
+const {
+    generateRefreshToken,
+    hashRefreshToken,
+} = require("../utils/refreshToken.js");
 
 const register = async (req, res) => {
     try {
@@ -98,8 +106,27 @@ const login = async (req, res) => {
             });
         }
 
+        // Generate Access Token
         const accessToken = generateAccessToken(user);
-        console.log("This is the access token: ", accessToken);
+
+        // Generate Refresh Token
+        const refreshToken = generateRefreshToken();
+        const tokenHash = hashRefreshToken(refreshToken);
+
+        await RefreshToken.create({
+            user: user._id,
+            tokenHash,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        });
+
+        // Send cookie to the client
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: "/auth",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
 
         // Send response
         return res.status(200).json({
@@ -109,6 +136,35 @@ const login = async (req, res) => {
         });
     } catch (error) {
         console.error("Login error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+const logout = async (req, res) => {
+    try {
+        const token = req.cookies.refreshToken;
+
+        if (token) {
+            const tokenHash = hashRefreshToken(token);
+
+            await RefreshToken.updateOne(
+                { tokenHash, revoked: false },
+                { revoked: true }
+            );
+        }
+
+        res.clearCookie("refreshToken", { path: "/auth" });
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged out successfully",
+        });
+    } catch (error) {
+        console.error("Logout error:", error);
 
         return res.status(500).json({
             success: false,
@@ -198,4 +254,63 @@ const getMe = async (req, res) => {
     }
 };
 
-module.exports = { register, login, verifyEmail, getMe };
+const refresh = async (req, res) => {
+    try {
+        const token = req.cookies.refreshToken;
+
+        if (!token)
+            return res
+                .status(401)
+                .json({ success: false, message: "Unauthorized" });
+
+        const tokenHash = hashRefreshToken(token);
+
+        const storedToken = await RefreshToken.findOne({
+            tokenHash,
+            revoked: false,
+            expiresAt: { $gt: new Date() },
+        }).populate("user");
+
+        if (!storedToken)
+            return res
+                .status(403)
+                .json({ success: false, message: "Invalid refresh token" });
+
+        // Rotate refresh token
+        storedToken.revoked = true;
+        await storedToken.save();
+
+        const newRefreshToken = generateRefreshToken();
+        const newHash = hashRefreshToken(newRefreshToken);
+
+        await RefreshToken.create({
+            user: storedToken.user._id,
+            tokenHash: newHash,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+
+        const accessToken = generateAccessToken(storedToken.user);
+
+        res.cookie("refreshToken", newRefreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict",
+            path: "/auth/refresh",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        return res.status(200).json({
+            success: true,
+            accessToken,
+        });
+    } catch (error) {
+        console.error("Refresh token error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+module.exports = { register, login, verifyEmail, getMe, refresh, logout };

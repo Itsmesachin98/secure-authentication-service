@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
 
 const authRoute = require("./routes/auth.route");
 const connectDB = require("./lib/db");
@@ -11,6 +12,7 @@ connectDB();
 
 const app = express();
 
+app.use(cookieParser());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

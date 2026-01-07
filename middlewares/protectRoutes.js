@@ -1,6 +1,6 @@
 const { verifyAccessToken } = require("../utils/generateToken.util");
 
-const requireAuth = (req, res, next) => {
+const protectRoute = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -30,4 +30,4 @@ const requireAuth = (req, res, next) => {
     }
 };
 
-module.exports = requireAuth;
+module.exports = protectRoute;

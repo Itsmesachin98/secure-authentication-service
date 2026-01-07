@@ -4,15 +4,19 @@ const {
     login,
     verifyEmail,
     getMe,
+    refresh,
+    logout,
 } = require("../controllers/auth.controller.js");
-const requireAuth = require("../middlewares/requireAuth.js");
+const protectRoute = require("../middlewares/protectRoutes.js");
 
 const router = express.Router();
 
-router.get("/me", requireAuth, getMe);
+router.get("/me", protectRoute, getMe);
 router.get("/verify-email", verifyEmail);
+router.get("/refresh", refresh);
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/logout", logout);
 
 module.exports = router;
