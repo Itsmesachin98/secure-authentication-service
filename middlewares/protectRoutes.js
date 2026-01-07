@@ -7,25 +7,33 @@ const protectRoute = (req, res, next) => {
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({
                 success: false,
-                message: "Authorization token missing",
+                message: "Unauthorized",
             });
         }
 
         const token = authHeader.split(" ")[1];
-
         const decoded = verifyAccessToken(token);
 
+        if (!decoded?.sub) {
+            throw new Error("Invalid token payload");
+        }
+
         // attach auth context
-        req.auth = {
+        req.auth = Object.freeze({
             userId: decoded.sub,
             role: decoded.role,
-        };
+        });
+
+        // req.auth = {
+        //     userId: decoded.sub,
+        //     role: decoded.role,
+        // };
 
         next();
     } catch (error) {
         return res.status(401).json({
             success: false,
-            message: "Invalid or expired access token",
+            message: "Unauthorized",
         });
     }
 };

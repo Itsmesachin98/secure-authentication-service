@@ -179,6 +179,33 @@ const logout = async (req, res) => {
     }
 };
 
+const logoutAll = async (req, res) => {
+    try {
+        const { userId } = req.auth; // from protectRoute middleware
+
+        // Revoke all active refresh tokens for the user
+        await RefreshToken.updateMany(
+            { user: userId, revoked: false },
+            { revoked: true }
+        );
+
+        // Clear refresh token cookie on current device
+        res.clearCookie("refreshToken", { path: "/auth" });
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged out from all devices successfully",
+        });
+    } catch (error) {
+        console.error("Logout-all error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
 const verifyEmail = async (req, res) => {
     try {
         const { token } = req.query;
@@ -299,9 +326,9 @@ const refresh = async (req, res) => {
 
         res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
-            path: "/auth/refresh",
+            path: "/auth",
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
@@ -319,4 +346,12 @@ const refresh = async (req, res) => {
     }
 };
 
-module.exports = { register, login, verifyEmail, getMe, refresh, logout };
+module.exports = {
+    register,
+    login,
+    verifyEmail,
+    getMe,
+    refresh,
+    logout,
+    logoutAll,
+};
