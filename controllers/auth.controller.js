@@ -106,6 +106,12 @@ const login = async (req, res) => {
             });
         }
 
+        // Revoke previous refresh tokens (important)
+        await RefreshToken.updateMany(
+            { user: user._id, revoked: false },
+            { revoked: true }
+        );
+
         // Generate Access Token
         const accessToken = generateAccessToken(user);
 
