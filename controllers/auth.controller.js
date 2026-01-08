@@ -13,6 +13,7 @@ const {
     generateRefreshToken,
     hashRefreshToken,
 } = require("../utils/refreshToken.js");
+const { redisClient } = require("../lib/redis.js");
 
 const register = async (req, res) => {
     try {
@@ -152,6 +153,15 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
+        const { jti, exp } = req.auth;
+
+        // calculate remaining lifetime
+        const ttl = exp - Math.floor(Date.now() / 1000);
+
+        if (ttl > 0) {
+            await redisClient.set(`blacklist:${jti}`, "true", { EX: ttl });
+        }
+
         const token = req.cookies.refreshToken;
 
         if (token) {

@@ -5,12 +5,22 @@ const cookieParser = require("cookie-parser");
 
 const authRoute = require("./routes/auth.route");
 const connectDB = require("./lib/db");
+const { connectRedis } = require("./lib/redis");
 
 dotenv.config();
 
 connectDB();
 
 const app = express();
+
+(async () => {
+    try {
+        await connectRedis();
+    } catch (err) {
+        console.error("Redis failed to connect", err);
+        process.exit(1);
+    }
+})();
 
 app.use(cookieParser());
 app.use(cors());

@@ -1,11 +1,13 @@
 require("dotenv").config();
 
 const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
 
 const generateAccessToken = (user) => {
     const payload = {
         sub: user._id.toString(),
         role: user.role,
+        jti: uuidv4(), // 👈 unique token id
     };
 
     const options = {

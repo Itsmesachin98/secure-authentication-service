@@ -1,6 +1,7 @@
+const { redisClient } = require("../lib/redis");
 const { verifyAccessToken } = require("../utils/generateToken.util");
 
-const protectRoute = (req, res, next) => {
+const protectRoute = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -18,10 +19,22 @@ const protectRoute = (req, res, next) => {
             throw new Error("Invalid token payload");
         }
 
+        // Blacklist check
+        const isBlackListed = await redisClient.get(`blacklist:${decoded.jti}`);
+
+        if (isBlackListed) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
+        }
+
         // attach auth context
         req.auth = Object.freeze({
             userId: decoded.sub,
             role: decoded.role,
+            jti: decoded.jti,
+            exp: decoded.exp,
         });
 
         next();
