@@ -24,11 +24,6 @@ const protectRoute = (req, res, next) => {
             role: decoded.role,
         });
 
-        // req.auth = {
-        //     userId: decoded.sub,
-        //     role: decoded.role,
-        // };
-
         next();
     } catch (error) {
         return res.status(401).json({
