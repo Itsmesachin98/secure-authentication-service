@@ -191,7 +191,14 @@ const logout = async (req, res) => {
 
 const logoutAll = async (req, res) => {
     try {
-        const { userId } = req.auth; // from protectRoute middleware
+        const { userId, jti, exp } = req.auth; // from protectRoute middleware
+
+        // calculate remaining lifetime
+        const ttl = exp - Math.floor(Date.now() / 1000);
+
+        if (ttl > 0) {
+            await redisClient.set(`blacklist:${jti}`, "true", { EX: ttl });
+        }
 
         // Revoke all active refresh tokens for the user
         await RefreshToken.updateMany(
