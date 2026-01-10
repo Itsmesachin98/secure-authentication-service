@@ -363,6 +363,13 @@ const refresh = async (req, res) => {
     }
 };
 
+const admin = async (req, res) => {
+    return res.status(200).json({
+        success: true,
+        message: "Welcome!",
+    });
+};
+
 module.exports = {
     register,
     login,
@@ -371,4 +378,5 @@ module.exports = {
     refresh,
     logout,
     logoutAll,
+    admin,
 };

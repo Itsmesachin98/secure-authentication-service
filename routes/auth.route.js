@@ -7,14 +7,17 @@ const {
     refresh,
     logout,
     logoutAll,
+    admin,
 } = require("../controllers/auth.controller.js");
 const protectRoute = require("../middlewares/protectRoutes.js");
+const requireRole = require("../middlewares/requireRole.js");
 
 const router = express.Router();
 
 router.get("/me", protectRoute, getMe);
 router.get("/verify-email", verifyEmail);
 router.get("/refresh", refresh);
+router.get("/admin", protectRoute, requireRole("admin"), admin);
 
 router.post("/register", register);
 router.post("/login", login);
