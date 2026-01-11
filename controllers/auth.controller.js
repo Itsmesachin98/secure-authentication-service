@@ -370,6 +370,85 @@ const admin = async (req, res) => {
     });
 };
 
+const changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword, confirmPassword } = req.body;
+        const { userId, jti, exp } = req.auth;
+
+        // Validate input
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match",
+            });
+        }
+
+        if (oldPassword === newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "New password must be different",
+            });
+        }
+
+        // Fetch user with password
+        const user = await User.findById(userId).select("+password");
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        // Verify old password
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Old password is incorrect",
+            });
+        }
+
+        // Hash & update password
+        const saltRounds = 12;
+        user.password = await bcrypt.hash(newPassword, saltRounds);
+        await user.save();
+
+        // Revoke ALL refresh tokens (logout from all devices)
+        await RefreshToken.updateMany(
+            { user: userId, revoked: false },
+            { revoked: true }
+        );
+
+        // Blacklist CURRENT access token (instant logout)
+        const ttl = exp - Math.floor(Date.now() / 1000);
+        if (ttl > 0) {
+            await redisClient.set(`blacklist:${jti}`, "true", { EX: ttl });
+        }
+
+        // Clear refresh token cookie on current device
+        res.clearCookie("refreshToken", { path: "/auth" });
+
+        return res.status(200).json({
+            success: true,
+            message: "Password changed successfully. Please log in again.",
+        });
+    } catch (error) {
+        console.error("Change password error: ", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -379,4 +458,5 @@ module.exports = {
     logout,
     logoutAll,
     admin,
+    changePassword,
 };

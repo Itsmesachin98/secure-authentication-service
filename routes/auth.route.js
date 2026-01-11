@@ -8,6 +8,7 @@ const {
     logout,
     logoutAll,
     admin,
+    changePassword,
 } = require("../controllers/auth.controller.js");
 const protectRoute = require("../middlewares/protectRoutes.js");
 const requireRole = require("../middlewares/requireRole.js");
@@ -25,5 +26,6 @@ router.post("/register", register);
 router.post("/login", loginRateLimiter, login);
 router.post("/logout", protectRoute, logout);
 router.post("/logout-all", protectRoute, logoutAll);
+router.post("/change-password", protectRoute, changePassword);
 
 module.exports = router;
