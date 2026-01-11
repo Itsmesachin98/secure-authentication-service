@@ -11,16 +11,18 @@ const {
 } = require("../controllers/auth.controller.js");
 const protectRoute = require("../middlewares/protectRoutes.js");
 const requireRole = require("../middlewares/requireRole.js");
+const loginRateLimiter = require("../middlewares/loginRateLimiter.js");
+const apiRateLimiter = require("../middlewares/apiRateLimiter.js");
 
 const router = express.Router();
 
-router.get("/me", protectRoute, getMe);
+router.get("/me", protectRoute, apiRateLimiter, getMe);
 router.get("/verify-email", verifyEmail);
 router.get("/refresh", refresh);
 router.get("/admin", protectRoute, requireRole("admin"), admin);
 
 router.post("/register", register);
-router.post("/login", login);
+router.post("/login", loginRateLimiter, login);
 router.post("/logout", protectRoute, logout);
 router.post("/logout-all", protectRoute, logoutAll);
 

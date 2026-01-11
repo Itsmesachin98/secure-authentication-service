@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const authRoute = require("./routes/auth.route");
 const connectDB = require("./lib/db");
 const { connectRedis } = require("./lib/redis");
+const ipRateLimiter = require("./middlewares/ipRateLimiter");
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(ipRateLimiter);
 app.use("/auth", authRoute);
 
 app.listen(3000, () => console.log("Server is running on port 3000"));
