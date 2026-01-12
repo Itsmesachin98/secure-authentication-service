@@ -1,4 +1,5 @@
 const express = require("express");
+
 const {
     register,
     login,
@@ -9,7 +10,11 @@ const {
     logoutAll,
     admin,
     changePassword,
+    forgotPassword,
+    verifyResetOtp,
+    resetPassword,
 } = require("../controllers/auth.controller.js");
+
 const protectRoute = require("../middlewares/protectRoutes.js");
 const requireRole = require("../middlewares/requireRole.js");
 const loginRateLimiter = require("../middlewares/loginRateLimiter.js");
@@ -27,5 +32,8 @@ router.post("/login", loginRateLimiter, login);
 router.post("/logout", protectRoute, logout);
 router.post("/logout-all", protectRoute, logoutAll);
 router.post("/change-password", protectRoute, changePassword);
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-reset-otp", verifyResetOtp);
+router.post("/reset-password", resetPassword);
 
 module.exports = router;
