@@ -1,0 +1,292 @@
+{
+    "info": {
+        "_postman_id": "9b6ee92a-8eb1-4b34-9c3c-2b7c0f55baf1",
+        "name": "Secure Authentication Service (Backend Only)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Production-grade Secure Auth Service API.\n\nFeatures:\n- JWT Access Token + Refresh Token Rotation\n- Redis Access Token Blacklist (Instant Logout)\n- Redis Rate Limiting (login/api/ip)\n- OTP Password Reset (forgot -> verify -> reset)\n- RBAC (admin protected route)\n\n✅ Quick Flow:\n1) Register\n2) Login (access token saved automatically)\n3) Me (protected)\n4) Admin (role check)\n5) Logout\n6) Forgot Password -> Verify OTP -> Reset Password\n7) Change Password\n8) Logout All\n"
+    },
+    "item": [
+        {
+            "name": "1) Auth - Core",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Sachin Kumar\",\n  \"email\": \"sachin@gmail.com\",\n  \"password\": \"Strong@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/register",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "register"]
+                        }
+                    }
+                },
+                {
+                    "name": "Login (Auto-save access token)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "try {",
+                                    "  const json = pm.response.json();",
+                                    "  if (json && json.accessToken) {",
+                                    "    pm.environment.set('accessToken', json.accessToken);",
+                                    "    console.log('✅ accessToken saved to environment');",
+                                    "  }",
+                                    "} catch (e) {",
+                                    "  console.log('No JSON body or accessToken found');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"sachin@gmail.com\",\n  \"password\": \"Strong@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "login"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Me (Protected)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/me",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "me"]
+                        }
+                    }
+                },
+                {
+                    "name": "Refresh Token (Rotation) [GET]",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/refresh",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "refresh"]
+                        }
+                    },
+                    "description": "This endpoint uses refresh token cookie.\nIn Postman, cookie is stored automatically after Login if enabled.\n\nIf your refresh is POST in future, change method accordingly."
+                },
+                {
+                    "name": "Verify Email [GET /auth/verify-email?token=...]",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verify-email?token={{verifyToken}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "verify-email"],
+                            "query": [
+                                { "key": "token", "value": "{{verifyToken}}" }
+                            ]
+                        }
+                    },
+                    "description": "Set env variable verifyToken manually (from email link)."
+                }
+            ]
+        },
+        {
+            "name": "2) RBAC (Admin)",
+            "item": [
+                {
+                    "name": "Admin Route (Protected + Admin Role)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/admin",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "admin"]
+                        }
+                    },
+                    "description": "This will return 403 if your user role is not admin."
+                }
+            ]
+        },
+        {
+            "name": "3) Password Management",
+            "item": [
+                {
+                    "name": "Change Password (Protected)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"oldPassword\": \"Strong@123\",\n  \"newPassword\": \"NewStrong@123\",\n  \"confirmPassword\": \"NewStrong@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/change-password",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "change-password"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4) Password Reset (OTP)",
+            "item": [
+                {
+                    "name": "Forgot Password (Send OTP)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"sachin@gmail.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/forgot-password",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "forgot-password"]
+                        }
+                    },
+                    "description": "Backend responds generically (email enumeration safe). OTP will be sent on email."
+                },
+                {
+                    "name": "Verify Reset OTP",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"sachin@gmail.com\",\n  \"otp\": \"123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verify-reset-otp",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "verify-reset-otp"]
+                        }
+                    },
+                    "description": "Replace OTP with the real OTP received on email."
+                },
+                {
+                    "name": "Reset Password (After OTP Verified)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"sachin@gmail.com\",\n  \"newPassword\": \"Reset@12345\",\n  \"confirmPassword\": \"Reset@12345\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/reset-password",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "reset-password"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5) Logout",
+            "item": [
+                {
+                    "name": "Logout (Protected)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/logout",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "logout"]
+                        }
+                    },
+                    "description": "Revokes refresh token + blacklists access token (instant logout behavior)."
+                },
+                {
+                    "name": "Logout All Devices (Protected)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{accessToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/logout-all",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["auth", "logout-all"]
+                        }
+                    },
+                    "description": "Revokes ALL refresh tokens of the user (logout from all devices)."
+                }
+            ]
+        }
+    ],
+    "event": [],
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:3000" },
+        { "key": "accessToken", "value": "" },
+        { "key": "verifyToken", "value": "" }
+    ]
+}
