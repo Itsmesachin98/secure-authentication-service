@@ -23,14 +23,6 @@ const register = async (req, res) => {
     try {
         const { fullName, email, password } = req.body;
 
-        // 1. Basic validation
-        if (!fullName || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "All fields are required",
-            });
-        }
-
         // 2. Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -376,30 +368,8 @@ const admin = async (req, res) => {
 
 const changePassword = async (req, res) => {
     try {
-        const { oldPassword, newPassword, confirmPassword } = req.body;
+        const { oldPassword, newPassword } = req.body;
         const { userId, jti, exp } = req.auth;
-
-        // Validate input
-        if (!oldPassword || !newPassword || !confirmPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "All fields are required",
-            });
-        }
-
-        if (newPassword !== confirmPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "Passwords do not match",
-            });
-        }
-
-        if (oldPassword === newPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "New password must be different",
-            });
-        }
 
         // Fetch user with password
         const user = await User.findById(userId).select("+password");
@@ -482,7 +452,6 @@ const forgotPassword = async (req, res) => {
             });
         }
 
-        // This code is written by me
         const lockKey = `otp:lock:${user._id}`;
         if (await redisClient.get(lockKey)) {
             const seconds = await redisClient.ttl(`otp:attempts:${user._id}`);
@@ -607,21 +576,7 @@ const verifyResetOtp = async (req, res) => {
 
 const resetPassword = async (req, res) => {
     try {
-        const { email, newPassword, confirmPassword } = req.body;
-
-        if (!email || !newPassword || !confirmPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid email or password",
-            });
-        }
-
-        if (newPassword !== confirmPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "Passwords do not match",
-            });
-        }
+        const { email, newPassword } = req.body;
 
         const user = await User.findOne({ email }).select("+password");
         if (!user) {
