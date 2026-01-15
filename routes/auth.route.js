@@ -59,7 +59,7 @@ const router = express.Router();
  *                 example: "youremail@gmail.com"
  *               password:
  *                 type: string
- *                 example: "StrongPassword"
+ *                 example: "yourpassword"
  *     responses:
  *       201:
  *         description: Registered successfully
@@ -108,7 +108,7 @@ router.get("/verify-email", verifyEmail);
  *             properties:
  *               email:
  *                 type: string
- *                 example: "sachin@gmail.com"
+ *                 example: "youremail@gmail.com"
  *     responses:
  *       200:
  *         description: Verification link resent successfully (or email already verified)
@@ -125,7 +125,7 @@ router.get("/verify-email", verifyEmail);
  *                   example: "Please verify your email address to activate your account."
  *                 verificationLink:
  *                   type: string
- *                   example: "http://localhost:3000/auth/verify-email?token=abcdef123456"
+ *                   example: "https://secure-authentication-service.onrender.com/auth/verify-email?token=abcdef123456"
  *       400:
  *         description: Email missing / invalid request
  *       404:
@@ -153,10 +153,10 @@ router.post("/resend-verification-link", resendVerificationLink);
  *             properties:
  *               email:
  *                 type: string
- *                 example: "sachin@gmail.com"
+ *                 example: "youremail@gmail.com"
  *               password:
  *                 type: string
- *                 example: "Strong@123"
+ *                 example: "yourpassword"
  *     responses:
  *       200:
  *         description: Login successful
@@ -265,13 +265,13 @@ router.post("/logout-all", protectRoute, logoutAll);
  *             properties:
  *               oldPassword:
  *                 type: string
- *                 example: "Strong@123"
+ *                 example: "youroldpassword"
  *               newPassword:
  *                 type: string
- *                 example: "NewStrong@123"
+ *                 example: "yournewpassword"
  *               confirmPassword:
  *                 type: string
- *                 example: "NewStrong@123"
+ *                 example: "yournewpassword"
  *     responses:
  *       200:
  *         description: Password changed successfully
@@ -301,7 +301,7 @@ router.post(
  *             properties:
  *               email:
  *                 type: string
- *                 example: "sachin@gmail.com"
+ *                 example: "youremail@gmail.com"
  *     responses:
  *       200:
  *         description: OTP sent (generic response)
@@ -324,7 +324,7 @@ router.post("/forgot-password", forgotPassword);
  *             properties:
  *               email:
  *                 type: string
- *                 example: "sachin@gmail.com"
+ *                 example: "youremail@gmail.com"
  *               otp:
  *                 type: string
  *                 example: "123456"
@@ -354,13 +354,13 @@ router.post("/verify-reset-otp", verifyResetOtp);
  *             properties:
  *               email:
  *                 type: string
- *                 example: "sachin@gmail.com"
+ *                 example: "youremail@gmail.com"
  *               newPassword:
  *                 type: string
- *                 example: "Reset@12345"
+ *                 example: "newpassword"
  *               confirmPassword:
  *                 type: string
- *                 example: "Reset@12345"
+ *                 example: "newpassword"
  *     responses:
  *       200:
  *         description: Password reset successful
