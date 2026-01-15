@@ -64,39 +64,59 @@ const register = async (req, res) => {
 };
 
 const resendVerificationLink = async (req, res) => {
-    const { email } = req.body;
+    try {
+        const { email } = req.body;
 
-    if (!email) {
-        return res.status(400).json({
-            success: false,
-            message: "Email is required",
-        });
-    }
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is required",
+            });
+        }
 
-    const user = await User.findOne({ email });
+        if (await redisClient.get(`email:cooldown:${email}`)) {
+            return res.status(429).json({
+                success: false,
+                message:
+                    "An email verification link has already been sent. Please try again after 5 minutes.",
+            });
+        }
 
-    if (!user) {
-        return res.status(404).json({
-            success: false,
-            message: "Email not found",
-        });
-    }
+        const user = await User.findOne({ email });
 
-    if (user.isEmailVerified) {
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "Email not found",
+            });
+        }
+
+        if (user.isEmailVerified) {
+            return res.status(200).json({
+                success: true,
+                message: "Email already verified. You can log in.",
+            });
+        }
+
+        const verificationToken = generateEmailVerificationToken(user);
+        await user.save({ validateBeforeSave: false });
+
+        await redisClient.set(`email:cooldown:${email}`, "1", { EX: 300 });
+
         return res.status(200).json({
             success: true,
-            message: "Email already verified. You can log in.",
+            message:
+                "Please verify your email address to activate your account.",
+            verificationLink: `${process.env.BACKEND_URL}/auth/verify-email?token=${verificationToken}`,
+        });
+    } catch (error) {
+        console.error("Resend verification link error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
         });
     }
-
-    const verificationToken = generateEmailVerificationToken(user);
-    await user.save({ validateBeforeSave: false });
-
-    return res.status(201).json({
-        success: true,
-        message: "Please verify your email address to activate your account.",
-        verificationLink: `${process.env.BACKEND_URL}/auth/verify-email?token=${verificationToken}`,
-    });
 };
 
 const login = async (req, res) => {
