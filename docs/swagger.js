@@ -11,8 +11,11 @@ const swaggerSpec = swaggerJSDoc({
         },
         servers: [
             {
-                url: "http://localhost:3000",
-                description: "Local",
+                url: process.env.BACKEND_URL,
+                description:
+                    process.env.NODE_ENV === "production"
+                        ? "Production"
+                        : "Development",
             },
         ],
         components: {
