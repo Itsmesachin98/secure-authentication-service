@@ -63,6 +63,62 @@ const register = async (req, res) => {
     }
 };
 
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: "Verification token is missing",
+            });
+        }
+
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        const user = await User.findOne({
+            emailVerificationToken: hashedToken,
+            emailVerificationExpires: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Token is invalid or has expired",
+            });
+        }
+
+        // If already verified (extra safety)
+        if (user.isEmailVerified) {
+            return res.status(200).json({
+                success: true,
+                message: "Email is already verified",
+            });
+        }
+
+        user.isEmailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Email verified successfully. You can now log in.",
+        });
+    } catch (error) {
+        console.error("Email verification error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
 const resendVerificationLink = async (req, res) => {
     try {
         const { email } = req.body;
@@ -202,6 +258,97 @@ const login = async (req, res) => {
     }
 };
 
+const getMe = async (req, res) => {
+    try {
+        const { userId } = req.auth;
+
+        const user = await User.findById(userId).select("-password -__v");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: user,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+const admin = async (req, res) => {
+    return res.status(200).json({
+        success: true,
+        message: "Welcome!",
+    });
+};
+
+const refresh = async (req, res) => {
+    try {
+        const token = req.cookies.refreshToken;
+
+        if (!token)
+            return res
+                .status(401)
+                .json({ success: false, message: "Unauthorized" });
+
+        const tokenHash = hashRefreshToken(token);
+
+        const storedToken = await RefreshToken.findOne({
+            tokenHash,
+            revoked: false,
+            expiresAt: { $gt: new Date() },
+        }).populate("user");
+
+        if (!storedToken)
+            return res
+                .status(403)
+                .json({ success: false, message: "Invalid refresh token" });
+
+        // Rotate refresh token
+        storedToken.revoked = true;
+        await storedToken.save();
+
+        const newRefreshToken = generateRefreshToken();
+        const newHash = hashRefreshToken(newRefreshToken);
+
+        await RefreshToken.create({
+            user: storedToken.user._id,
+            tokenHash: newHash,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+
+        const accessToken = generateAccessToken(storedToken.user);
+
+        res.cookie("refreshToken", newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            path: "/auth",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        return res.status(200).json({
+            success: true,
+            accessToken,
+        });
+    } catch (error) {
+        console.error("Refresh token error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
 const logout = async (req, res) => {
     try {
         const { jti, exp } = req.auth;
@@ -272,153 +419,6 @@ const logoutAll = async (req, res) => {
             message: "Internal server error",
         });
     }
-};
-
-const verifyEmail = async (req, res) => {
-    try {
-        const { token } = req.query;
-
-        if (!token) {
-            return res.status(400).json({
-                success: false,
-                message: "Verification token is missing",
-            });
-        }
-
-        const hashedToken = crypto
-            .createHash("sha256")
-            .update(token)
-            .digest("hex");
-
-        const user = await User.findOne({
-            emailVerificationToken: hashedToken,
-            emailVerificationExpires: { $gt: Date.now() },
-        });
-
-        if (!user) {
-            return res.status(400).json({
-                success: false,
-                message: "Token is invalid or has expired",
-            });
-        }
-
-        // If already verified (extra safety)
-        if (user.isEmailVerified) {
-            return res.status(200).json({
-                success: true,
-                message: "Email is already verified",
-            });
-        }
-
-        user.isEmailVerified = true;
-        user.emailVerificationToken = undefined;
-        user.emailVerificationExpires = undefined;
-
-        await user.save();
-
-        return res.status(200).json({
-            success: true,
-            message: "Email verified successfully. You can now log in.",
-        });
-    } catch (error) {
-        console.error("Email verification error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-        });
-    }
-};
-
-const getMe = async (req, res) => {
-    try {
-        const { userId } = req.auth;
-
-        const user = await User.findById(userId).select("-password -__v");
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            data: user,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Internal server error",
-        });
-    }
-};
-
-const refresh = async (req, res) => {
-    try {
-        const token = req.cookies.refreshToken;
-
-        if (!token)
-            return res
-                .status(401)
-                .json({ success: false, message: "Unauthorized" });
-
-        const tokenHash = hashRefreshToken(token);
-
-        const storedToken = await RefreshToken.findOne({
-            tokenHash,
-            revoked: false,
-            expiresAt: { $gt: new Date() },
-        }).populate("user");
-
-        if (!storedToken)
-            return res
-                .status(403)
-                .json({ success: false, message: "Invalid refresh token" });
-
-        // Rotate refresh token
-        storedToken.revoked = true;
-        await storedToken.save();
-
-        const newRefreshToken = generateRefreshToken();
-        const newHash = hashRefreshToken(newRefreshToken);
-
-        await RefreshToken.create({
-            user: storedToken.user._id,
-            tokenHash: newHash,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        });
-
-        const accessToken = generateAccessToken(storedToken.user);
-
-        res.cookie("refreshToken", newRefreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            path: "/auth",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-
-        return res.status(200).json({
-            success: true,
-            accessToken,
-        });
-    } catch (error) {
-        console.error("Refresh token error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error",
-        });
-    }
-};
-
-const admin = async (req, res) => {
-    return res.status(200).json({
-        success: true,
-        message: "Welcome!",
-    });
 };
 
 const changePassword = async (req, res) => {
