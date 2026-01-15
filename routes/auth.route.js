@@ -89,7 +89,53 @@ router.post("/register", validateRequest(registerSchema), register);
  */
 router.get("/verify-email", verifyEmail);
 
-router.post("/resend-verificaton-link", resendVerificationLink);
+/**
+ * @swagger
+ * /auth/resend-verification-link:
+ *   post:
+ *     summary: Resend email verification link (rate limited)
+ *     tags: [Auth]
+ *     description: >
+ *       Resends the email verification link if the user exists and is not already verified.
+ *       Uses Redis cooldown (5 minutes) to prevent spam.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "sachin@gmail.com"
+ *     responses:
+ *       200:
+ *         description: Verification link resent successfully (or email already verified)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Please verify your email address to activate your account."
+ *                 verificationLink:
+ *                   type: string
+ *                   example: "http://localhost:3000/auth/verify-email?token=abcdef123456"
+ *       400:
+ *         description: Email missing / invalid request
+ *       404:
+ *         description: Email not found
+ *       429:
+ *         description: Too many requests (cooldown active)
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/resend-verification-link", resendVerificationLink);
 
 /**
  * @swagger
