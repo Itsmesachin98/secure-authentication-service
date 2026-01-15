@@ -7,15 +7,13 @@ const User = require("../models/user.model.js");
 const RefreshToken = require("../models/refreshToken.model.js");
 
 const generateEmailVerificationToken = require("../utils/token.util.js");
-const {
-    sendVerificationEmail,
-    sendPasswordResetOtp,
-} = require("../services/email.service.js");
 const { generateAccessToken } = require("../utils/generateToken.util.js");
+
 const {
     generateRefreshToken,
     hashRefreshToken,
 } = require("../utils/refreshToken.js");
+
 const { redisClient } = require("../lib/redis.js");
 const PasswordReset = require("../models/passwordReset.model.js");
 
@@ -46,13 +44,14 @@ const register = async (req, res) => {
         const verificationToken = generateEmailVerificationToken(user);
         await user.save({ validateBeforeSave: false });
 
-        await sendVerificationEmail(user.email, verificationToken);
+        // await sendVerificationEmail(user.email, verificationToken);
 
         // 5. Send response (never send password hash)
         return res.status(201).json({
             success: true,
             message:
                 "Registration successful. Please verify your email address to activate your account.",
+            verificationLink: `${process.env.BACKEND_URL}/auth/verify-email?token=${verificationToken}`,
         });
     } catch (error) {
         console.error("Register Error:", error);
@@ -62,6 +61,42 @@ const register = async (req, res) => {
             message: "Internal server error",
         });
     }
+};
+
+const resendVerificationLink = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({
+            success: false,
+            message: "Email is required",
+        });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        return res.status(404).json({
+            success: false,
+            message: "Email not found",
+        });
+    }
+
+    if (user.isEmailVerified) {
+        return res.status(200).json({
+            success: true,
+            message: "Email already verified. You can log in.",
+        });
+    }
+
+    const verificationToken = generateEmailVerificationToken(user);
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(201).json({
+        success: true,
+        message: "Please verify your email address to activate your account.",
+        verificationLink: `${process.env.BACKEND_URL}/auth/verify-email?token=${verificationToken}`,
+    });
 };
 
 const login = async (req, res) => {
@@ -464,14 +499,14 @@ const forgotPassword = async (req, res) => {
 
         // Generate & hash otp
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        // const otpHash = await bcrypt.hash(otp, 10);
+        const otpHash = await bcrypt.hash(otp, 10);
 
         // Replace any existing reset session (very important)
         await PasswordReset.deleteMany({ user: user._id });
 
         await PasswordReset.create({
             user: user._id,
-            otpHash: otp,
+            otpHash,
             expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         });
 
@@ -484,6 +519,7 @@ const forgotPassword = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "An OTP has been sent.",
+            otp: `Your One-Time Password (OTP): ${otp}`,
         });
     } catch (error) {
         console.error("Forgot password error:", error);
@@ -548,8 +584,8 @@ const verifyResetOtp = async (req, res) => {
             });
         }
 
-        // const isValid = await bcrypt.compare(otp, reset.otpHash);
-        const isValid = otp === reset.otpHash;
+        const isValid = await bcrypt.compare(otp, reset.otpHash);
+        // const isValid = otp === reset.otpHash;
         if (!isValid) {
             return res.status(400).json({
                 success: false,
@@ -629,13 +665,14 @@ const resetPassword = async (req, res) => {
 
 module.exports = {
     register,
-    login,
     verifyEmail,
+    resendVerificationLink,
+    login,
     getMe,
+    admin,
     refresh,
     logout,
     logoutAll,
-    admin,
     changePassword,
     forgotPassword,
     verifyResetOtp,

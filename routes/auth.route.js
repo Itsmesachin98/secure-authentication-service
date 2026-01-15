@@ -9,13 +9,14 @@ const express = require("express");
 
 const {
     register,
-    login,
     verifyEmail,
+    resendVerificationLink,
+    login,
     getMe,
+    admin,
     refresh,
     logout,
     logoutAll,
-    admin,
     changePassword,
     forgotPassword,
     verifyResetOtp,
@@ -38,19 +39,34 @@ const router = express.Router();
 
 /**
  * @swagger
- * /auth/me:
- *   get:
- *     summary: Get logged-in user details (Protected)
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
  *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fullName, email, password]
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 example: "Your Name"
+ *               email:
+ *                 type: string
+ *                 example: "youremail@gmail.com"
+ *               password:
+ *                 type: string
+ *                 example: "StrongPassword"
  *     responses:
- *       200:
- *         description: User details returned
- *       401:
- *         description: Unauthorized
+ *       201:
+ *         description: Registered successfully
+ *       400:
+ *         description: Validation error
  */
-router.get("/me", protectRoute, apiRateLimiter, getMe);
+router.post("/register", validateRequest(registerSchema), register);
 
 /**
  * @swagger
@@ -73,68 +89,7 @@ router.get("/me", protectRoute, apiRateLimiter, getMe);
  */
 router.get("/verify-email", verifyEmail);
 
-/**
- * @swagger
- * /auth/refresh:
- *   get:
- *     summary: Refresh access token (Refresh token rotation)
- *     tags: [Auth]
- *     responses:
- *       200:
- *         description: New access token issued
- *       403:
- *         description: Invalid refresh token
- */
-router.get("/refresh", refresh);
-
-/**
- * @swagger
- * /auth/admin:
- *   get:
- *     summary: Admin protected route (RBAC)
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Admin route accessed successfully
- *       403:
- *         description: Insufficient permissions
- *       401:
- *         description: Unauthorized
- */
-router.get("/admin", protectRoute, requireRole("admin"), admin);
-
-/**
- * @swagger
- * /auth/register:
- *   post:
- *     summary: Register a new user
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [name, email, password]
- *             properties:
- *               name:
- *                 type: string
- *                 example: "Sachin Kumar"
- *               email:
- *                 type: string
- *                 example: "sachin@gmail.com"
- *               password:
- *                 type: string
- *                 example: "Strong@123"
- *     responses:
- *       201:
- *         description: Registered successfully
- *       400:
- *         description: Validation error
- */
-router.post("/register", validateRequest(registerSchema), register);
+router.post("/resend-verificaton-link", resendVerificationLink);
 
 /**
  * @swagger
@@ -165,6 +120,54 @@ router.post("/register", validateRequest(registerSchema), register);
  *         description: Too many attempts (rate limited)
  */
 router.post("/login", loginRateLimiter, login);
+
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get logged-in user details (Protected)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User details returned
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/me", protectRoute, apiRateLimiter, getMe);
+
+/**
+ * @swagger
+ * /auth/admin:
+ *   get:
+ *     summary: Admin protected route (RBAC)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Admin route accessed successfully
+ *       403:
+ *         description: Insufficient permissions
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/admin", protectRoute, requireRole("admin"), admin);
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   get:
+ *     summary: Refresh access token (Refresh token rotation)
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: New access token issued
+ *       403:
+ *         description: Invalid refresh token
+ */
+router.get("/refresh", refresh);
 
 /**
  * @swagger
