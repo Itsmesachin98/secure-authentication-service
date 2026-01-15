@@ -1,5 +1,5 @@
 const { redisClient } = require("../lib/redis");
-const { verifyAccessToken } = require("../utils/generateToken.util");
+const { verifyAccessToken } = require("../utils/accessToken");
 
 const protectRoute = async (req, res, next) => {
     try {

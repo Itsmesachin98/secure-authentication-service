@@ -6,8 +6,8 @@ const crypto = require("crypto");
 const User = require("../models/user.model.js");
 const RefreshToken = require("../models/refreshToken.model.js");
 
-const generateEmailVerificationToken = require("../utils/token.util.js");
-const { generateAccessToken } = require("../utils/generateToken.util.js");
+const generateEmailVerificationToken = require("../utils/emailVerificationToken.js");
+const { generateAccessToken } = require("../utils/accessToken.js");
 
 const {
     generateRefreshToken,
