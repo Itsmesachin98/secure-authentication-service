@@ -8,6 +8,7 @@
 const express = require("express");
 
 const {
+    pingAllUsers,
     register,
     verifyEmail,
     resendVerificationLink,
@@ -37,9 +38,7 @@ const {
 
 const router = express.Router();
 
-router.get("/test", (req, res) => {
-    return res.json({ message: "Hello world" });
-});
+router.get("/ping-users", pingAllUsers);
 
 /**
  * @swagger

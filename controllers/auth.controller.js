@@ -17,6 +17,25 @@ const {
 const { redisClient } = require("../lib/redis.js");
 const PasswordReset = require("../models/passwordReset.model.js");
 
+const pingAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({});
+
+        const userNames = users.map((user) => user.fullName);
+
+        return res
+            .status(200)
+            .json({ success: true, source: "db", users: userNames });
+    } catch (error) {
+        console.error("pingAllUsers Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
+
 const register = async (req, res) => {
     try {
         const { fullName, email, password } = req.body;
@@ -217,7 +236,7 @@ const login = async (req, res) => {
         // Revoke previous refresh tokens (important)
         await RefreshToken.updateMany(
             { user: user._id, revoked: false },
-            { revoked: true }
+            { revoked: true },
         );
 
         // Generate Access Token
@@ -367,7 +386,7 @@ const logout = async (req, res) => {
 
             await RefreshToken.updateOne(
                 { tokenHash, revoked: false },
-                { revoked: true }
+                { revoked: true },
             );
         }
 
@@ -401,7 +420,7 @@ const logoutAll = async (req, res) => {
         // Revoke all active refresh tokens for the user
         await RefreshToken.updateMany(
             { user: userId, revoked: false },
-            { revoked: true }
+            { revoked: true },
         );
 
         // Clear refresh token cookie on current device
@@ -452,7 +471,7 @@ const changePassword = async (req, res) => {
         // Revoke ALL refresh tokens (logout from all devices)
         await RefreshToken.updateMany(
             { user: userId, revoked: false },
-            { revoked: true }
+            { revoked: true },
         );
 
         // Blacklist CURRENT access token (instant logout)
@@ -662,7 +681,7 @@ const resetPassword = async (req, res) => {
         // Invalidate sessions
         await RefreshToken.updateMany(
             { user: user._id, revoked: false },
-            { revoked: true }
+            { revoked: true },
         );
 
         // Cleanup
@@ -684,6 +703,7 @@ const resetPassword = async (req, res) => {
 };
 
 module.exports = {
+    pingAllUsers,
     register,
     verifyEmail,
     resendVerificationLink,
