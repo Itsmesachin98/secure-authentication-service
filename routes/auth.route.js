@@ -37,6 +37,10 @@ const {
 
 const router = express.Router();
 
+router.get("/test", (req, res) => {
+    return res.json({ message: "Hello world" });
+});
+
 /**
  * @swagger
  * /auth/register:
@@ -282,7 +286,7 @@ router.post(
     "/change-password",
     protectRoute,
     validateRequest(changePasswordSchema),
-    changePassword
+    changePassword,
 );
 
 /**
@@ -370,7 +374,7 @@ router.post("/verify-reset-otp", verifyResetOtp);
 router.post(
     "/reset-password",
     validateRequest(resetPasswordSchema),
-    resetPassword
+    resetPassword,
 );
 
 module.exports = router;
