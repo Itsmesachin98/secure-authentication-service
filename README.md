@@ -10,10 +10,10 @@ It follows modern security best practices like **JWT authentication**, **refresh
 
 ## 🌍 Live Deployment
 
-| Service                      | Link                                                      |
-| ---------------------------- | --------------------------------------------------------- |
-| **Backend Base URL**         | `https://secure-authentication-service.onrender.com`      |
-| **Swagger Docs (Test Here)** | `https://secure-authentication-service.onrender.com/docs` |
+| Service                      | Link                                                 |
+| ---------------------------- | ---------------------------------------------------- |
+| **Backend Base URL**         | `https://secure-auth-service-lk0k.onrender.com`      |
+| **Swagger Docs (Test Here)** | `https://secure-auth-service-lk0k.onrender.com/docs` |
 
 > This is a backend-only project. Recruiters and developers can test all endpoints directly using Swagger.
 
@@ -40,37 +40,37 @@ This is not a basic authentication API — it’s designed like a **real-world p
 
 ### ✅ Authentication & Authorization
 
--   User registration with email verification
--   Secure login with bcrypt hashing (12 salt rounds)
--   JWT access token issuance (configurable expiration)
--   Refresh token rotation with automatic invalidation
--   Redis token blacklist for access token revocation
--   Role Based Access Control (RBAC)
+- User registration with email verification
+- Secure login with bcrypt hashing (12 salt rounds)
+- JWT access token issuance (configurable expiration)
+- Refresh token rotation with automatic invalidation
+- Redis token blacklist for access token revocation
+- Role Based Access Control (RBAC)
 
 ---
 
 ### 🛡️ Security Highlights
 
--   **3-layer rate limiting**
-    -   Global IP limiting
-    -   Login brute-force protection (email + IP)
-    -   Per-user API protection for authenticated endpoints
--   OTP-based password reset flow
--   OTP attempt tracking + lockout for 15 minutes
--   Refresh tokens stored securely (SHA-256 hashed in DB)
--   Email verification enforcement (unverified users cannot log in)
--   CORS configurable for trusted clients
--   Refresh token stored in **HTTPOnly cookie** (prevents XSS)
+- **3-layer rate limiting**
+    - Global IP limiting
+    - Login brute-force protection (email + IP)
+    - Per-user API protection for authenticated endpoints
+- OTP-based password reset flow
+- OTP attempt tracking + lockout for 15 minutes
+- Refresh tokens stored securely (SHA-256 hashed in DB)
+- Email verification enforcement (unverified users cannot log in)
+- CORS configurable for trusted clients
+- Refresh token stored in **HTTPOnly cookie** (prevents XSS)
 
 ---
 
 ### 👤 User Management
 
--   `/auth/me` protected profile endpoint
--   Change password (revokes all refresh tokens)
--   Logout current session
--   Logout all devices
--   Resend verification email with cooldown protection
+- `/auth/me` protected profile endpoint
+- Change password (revokes all refresh tokens)
+- Logout current session
+- Logout all devices
+- Resend verification email with cooldown protection
 
 ---
 
@@ -231,9 +231,9 @@ Login → Generate random token → SHA-256 hash stored in DB
 
 ### 🔑 Password Security
 
--   **Algorithm:** bcrypt with 12 salt rounds (industry standard)
--   **Storage:** Password hashes are never selected by default (`select: false`)
--   **Reset:** OTP-based reset system (no reset link stored permanently)
+- **Algorithm:** bcrypt with 12 salt rounds (industry standard)
+- **Storage:** Password hashes are never selected by default (`select: false`)
+- **Reset:** OTP-based reset system (no reset link stored permanently)
 
 ---
 
@@ -252,10 +252,10 @@ maxAge: 7 * 24 * 60 * 60 * 1000; // 7 days
 
 ### ✅ Validation
 
--   **Joi schemas** enforced on all POST/PUT requests
--   **Input sanitization** (unknown fields stripped)
--   **Password complexity rules** (uppercase, lowercase, digit, special character)
--   **Email validation** follows RFC-style validation rules
+- **Joi schemas** enforced on all POST/PUT requests
+- **Input sanitization** (unknown fields stripped)
+- **Password complexity rules** (uppercase, lowercase, digit, special character)
+- **Email validation** follows RFC-style validation rules
 
 ---
 
@@ -365,11 +365,11 @@ User can login with new password
 
 ## 📈 Performance Considerations
 
--   **MongoDB Indexes:** Email uniqueness index for fast lookups
--   **Redis Expiration:** Auto-cleanup using key TTL
--   **Token Hashing:** SHA-256 refresh token hashing allows fast DB comparisons
--   **Bcrypt Rounds:** 12 rounds balances security & performance
--   **Connection Pooling:** Mongoose & Redis handle pooling automatically
+- **MongoDB Indexes:** Email uniqueness index for fast lookups
+- **Redis Expiration:** Auto-cleanup using key TTL
+- **Token Hashing:** SHA-256 refresh token hashing allows fast DB comparisons
+- **Bcrypt Rounds:** 12 rounds balances security & performance
+- **Connection Pooling:** Mongoose & Redis handle pooling automatically
 
 ---
 
