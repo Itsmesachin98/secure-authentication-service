@@ -10,10 +10,10 @@ It follows modern security best practices like **JWT authentication**, **refresh
 
 ## 🌍 Live Deployment
 
-| Service                      | Link                                                 |
-| ---------------------------- | ---------------------------------------------------- |
-| **Backend Base URL**         | `https://secure-auth-service-lk0k.onrender.com`      |
-| **Swagger Docs (Test Here)** | `https://secure-auth-service-lk0k.onrender.com/docs` |
+| Service                      | Link                                                      |
+| ---------------------------- | --------------------------------------------------------- |
+| **Backend Base URL**         | `https://secure-authentication-service.onrender.com`      |
+| **Swagger Docs (Test Here)** | `https://secure-authentication-service.onrender.com/docs` |
 
 > This is a backend-only project. Recruiters and developers can test all endpoints directly using Swagger.
 
