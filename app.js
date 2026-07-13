@@ -30,6 +30,8 @@ async function startServer() {
         await connectDB();
         await connectRedis();
 
+        console.log("let's check if I am getting printed");
+
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
         });
